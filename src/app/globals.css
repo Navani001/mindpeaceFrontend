@@ -1,0 +1,211 @@
+/* globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+}
+
+.scrollbar-custom::-webkit-scrollbar {
+    width: 5px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Theme-aware scrollbar styles */
+[data-theme="light"] .scrollbar-custom::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+[data-theme="light"] .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+}
+
+[data-theme="light"] .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+[data-theme="dark"] .scrollbar-custom::-webkit-scrollbar-track {
+    background: #2c2c2e;
+}
+
+[data-theme="dark"] .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+[data-theme="dark"] .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.glass-morphism {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Floating animation for login elements */
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.float-animation {
+    animation: float 6s ease-in-out infinite;
+}
+
+/* Custom input focus styles */
+.custom-input:focus {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    border-color: rgb(99, 102, 241);
+}
+
+/* Template Creator Animations */
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+    animation: slide-up 0.4s ease-out;
+}
+
+.animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+}
+
+.shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* Card hover effects */
+.card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Phone preview enhancements */
+.phone-glow {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+}
+
+/* Progress bar custom styles */
+.progress-glow {
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+}
+
+/* Force light theme for HeroUI components - targeted approach */
+html[data-theme="light"],
+.light {
+  color-scheme: light !important;
+}
+
+/* Fix only dark backgrounds that shouldn't be dark in light theme */
+.light [data-slot="base"]:is([class*="table"], table),
+.light [data-slot="wrapper"]:is([class*="table"]),
+.light table {
+  background-color: white !important;
+}
+
+/* Table header - preserve intended light gray background */
+.light [data-slot="column-header"],
+.light th {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+}
+
+/* Table cells - white background with normal text */
+.light [data-slot="cell"],
+.light td {
+  background-color: white !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* Card backgrounds - white with border */
+.light [data-slot="base"]:is([class*="card"]) {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* Input fields - white background */
+.light [data-slot="input-wrapper"] {
+  background-color: white !important;
+}
+
+.light [data-slot="input"] {
+  background-color: white !important;
+}
+
+/* Only fix buttons that are accidentally dark */
+.light [data-slot="base"]:is(button[class*="ghost"], button[class*="light"]) {
+  background-color: white !important;
+}
+
+/* Dropdown menus - white background */
+.light [data-slot="base"]:is([class*="popover"], [class*="dropdown"]) {
+  background-color: white !important;
+}
+
+/* Modal backgrounds */
+.light [data-slot="base"]:is([class*="modal"]) {
+  background-color: white !important;
+}
+
+/* Only override text that's accidentally white on white */
+.light [data-slot="cell"] *,
+.light [data-slot="column-header"] * {
+  color: inherit !important;
+}
+
+/* Fix any completely black backgrounds that shouldn't be black */
+.light .bg-black:not([class*="intentional"]) {
+  background-color: white !important;
+  color: #111827 !important;
+}
