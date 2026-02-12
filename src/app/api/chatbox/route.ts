@@ -12,6 +12,7 @@ export async function POST(req: Request) {
     messages
   });
   console.log(messages)
+  
 
   return result.toDataStreamResponse();
 }

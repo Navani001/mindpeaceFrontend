@@ -14,7 +14,6 @@ export const RightSideBar = ({ chats }: { chats: ChatSession[] }) => {
     const [chatHistory, setChatHistory] = useState<ChatSession[]>(chats);
     const router = useRouter();
 
-    console.log("hellochats", chats)
     useEffect(() => {
         setChatHistory(chats);
     }, [chats])
