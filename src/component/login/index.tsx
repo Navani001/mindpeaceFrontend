@@ -21,10 +21,10 @@ export const Login = () => {
   const router = useRouter();
   const handleLogin = async () => {
     setIsLoading(true);
-    postRequest("auth/login", { email }).then((res:any)=>{
+    postRequest("auth/login", { email }).then((res: any) => {
       localStorage.setItem("token", res.data.token);
       setIsLoading(false);
-      router.push("/chatBot");
+      router.push(`/chatBot/${res.data.chatId}`);
 
     })
   };

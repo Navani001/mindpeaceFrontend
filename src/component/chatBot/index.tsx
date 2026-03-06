@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { RightSideBar } from "./sidebar";
 import { getRequest, postRequest } from "@/utils";
+import { useRouter } from "next/navigation";
 
 // Typing animation component
 const TypingAnimation = () => {
@@ -25,6 +26,7 @@ const TypingAnimation = () => {
 
 
 export const Chatbot = ({ id }: any) => {
+  const router = useRouter();
   useEffect(() => {
     getRequest("chatbot", {
       "authorization": "Bearer " + localStorage.getItem("token")
@@ -42,7 +44,7 @@ export const Chatbot = ({ id }: any) => {
   const [chatData, setChatData] = useState<any>([]);
   const [chatMessages, setChatMessages] = useState<any>([]);
   const [lastSavedAssistantId, setLastSavedAssistantId] = useState<string | null>(null);
-  const [name,setName]=useState("New Chat");
+  const [name, setName] = useState("New Chat");
   useEffect(() => {
     console.log("status:", status, "response:", response, "messages length:", messages.length);
 
@@ -85,7 +87,30 @@ export const Chatbot = ({ id }: any) => {
     getRequest(`chatbot/messages/${id}`, {
       "authorization": "Bearer " + localStorage.getItem("token")
     }).then((res: any) => {
-      const formattedMessages = res.data.messages.map((msg: any) => ({
+      const chatDetails = res?.data?.chats;
+      const messagesFromApi = Array.isArray(res?.data?.messages) ? res.data.messages : [];
+
+      if (!chatDetails) {
+        setName("New Chat");
+        setChatMessages([]);
+        setMessages([]);
+
+        getRequest("chatbot", {
+          "authorization": "Bearer " + localStorage.getItem("token")
+        }).then((chatRes: any) => {
+          const chats = chatRes?.data?.chats || [];
+          setChatData(chats);
+          const latestChatId = chats?.[0]?.id;
+          if (latestChatId) {
+            router.push(`/chatBot/${latestChatId}`);
+          } else {
+            router.push("/chatBot");
+          }
+        });
+        return;
+      }
+
+      const formattedMessages = messagesFromApi.map((msg: any) => ({
         id: msg.id,
         role: msg.sender === "user" ? "user" : "assistant",
         content: msg.content,
@@ -94,12 +119,16 @@ export const Chatbot = ({ id }: any) => {
         parts: [{ type: "text", text: msg.content }]
       }));
       setChatMessages(formattedMessages);
-      setName(res.data.chats.name);
+      setName(chatDetails.name);
       // Initialize useChat messages with backend data for context preservation
       setMessages(formattedMessages);
+    }).catch(() => {
+      setName("New Chat");
+      setChatMessages([]);
+      setMessages([]);
     })
 
-  }, [id, setMessages])
+  }, [id, setMessages, router])
 
 
   return (
@@ -119,10 +148,10 @@ export const Chatbot = ({ id }: any) => {
           <div className="absolute bottom-0 right-0">
             <div className="absolute">
 
-              <MessageCircle className="-rotate-90 absolute" strokeWidth={0.1} rotate={270} size={100} />
+              {/* <MessageCircle className="-rotate-90 absolute" strokeWidth={0.1} rotate={270} size={100} /> */}
             </div>
             <div className="w-40 h-40 mb-6 abosolute ">
-              <Lottie animationData={robots} loop={true} />
+              {/*  <Lottie animationData={robots} loop={true} /> */}
             </div>
           </div>
           {messages.length === 0 ? (
@@ -259,7 +288,7 @@ export const Chatbot = ({ id }: any) => {
       </main>
 
       {/* Right Sidebar - Chat History */}
-      <RightSideBar chats={chatData} />
+      <RightSideBar chats={chatData} currentChatId={id} />
     </div>
   );
 };

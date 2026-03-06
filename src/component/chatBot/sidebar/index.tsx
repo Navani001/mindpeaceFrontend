@@ -1,4 +1,4 @@
-import { postRequest } from "@/utils";
+import { deleteRequest, getRequest, postRequest } from "@/utils";
 import { Button } from "@heroui/react"
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,36 +10,46 @@ interface ChatSession {
     // messageCount: number;
     pinned?: boolean;
 }
-export const RightSideBar = ({ chats }: { chats: ChatSession[] }) => {
+export const RightSideBar = ({ chats, currentChatId }: { chats: ChatSession[], currentChatId?: string }) => {
     const [chatHistory, setChatHistory] = useState<ChatSession[]>(chats);
     const router = useRouter();
 
     useEffect(() => {
         setChatHistory(chats);
     }, [chats])
-    const handleNewChat = () => {
-        const newChat: ChatSession = {
-            id: Date.now().toString(),
-            name: "New Chat",
-            updatedAt: new Date(),
-
-        };
-        setChatHistory([newChat, ...chatHistory]);
-        
-        postRequest("chatbot", {
-            name: newChat.name, "mood": "anxiety",
-            "score": 0
-}, {
+    const handleNewChat = async () => {
+        try {
+            await postRequest("chatbot", {
+                name: "New Chat", "mood": "anxiety",
+                "score": 0
+            }, {
                 "authorization": "Bearer " + localStorage.getItem("token")
-            }).then((res: any) => {
+            });
 
+            const latestChatRes: any = await getRequest("chatbot/latest", {
+                "authorization": "Bearer " + localStorage.getItem("token")
+            });
 
-            })
-        
+            const latestChat = latestChatRes?.data?.chat;
+            if (latestChat?.id) {
+                setChatHistory((prevChats) => [latestChat, ...prevChats.filter((chat) => chat.id !== latestChat.id)]);
+                router.push(`/chatBot/${latestChat.id}`);
+            }
+        } catch (error) {
+            console.error("Failed to create and navigate to latest chat:", error);
+        }
+
     };
 
-    const handleDeleteChat = (id: string) => {
-        setChatHistory(chatHistory.filter((chat) => chat.id !== id));
+    const handleDeleteChat = async (id: string) => {
+        try {
+            await deleteRequest(`chatbot/${id}`, {}, {
+                "authorization": "Bearer " + localStorage.getItem("token")
+            });
+            setChatHistory((prevChats) => prevChats.filter((chat) => chat.id !== id));
+        } catch (error) {
+            console.error("Failed to delete chat:", error);
+        }
     };
 
     const togglePin = (id: string) => {
@@ -97,7 +107,13 @@ export const RightSideBar = ({ chats }: { chats: ChatSession[] }) => {
                         {pinnedChats.map((chat) => (
                             <div
                                 key={chat.id}
-                                className="group p-3 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                                onClick={() => {
+                                    router.push(`/chatBot/${chat.id}`)
+                                }}
+                                className={`group p-3 rounded-lg transition cursor-pointer ${chat.id === currentChatId
+                                    ? 'bg-blue-100 border-l-4 border-blue-600'
+                                    : 'hover:bg-gray-100'
+                                    }`}
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1 min-w-0">
@@ -109,7 +125,10 @@ export const RightSideBar = ({ chats }: { chats: ChatSession[] }) => {
                                         </p>
                                     </div>
                                     <button
-                                        onClick={() => handleDeleteChat(chat.id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteChat(chat.id)
+                                        }}
                                         className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition ml-2"
                                     >
                                         <FiTrash2 size={14} className="text-red-600" />
@@ -128,10 +147,13 @@ export const RightSideBar = ({ chats }: { chats: ChatSession[] }) => {
                     {recentChats.map((chat) => (
                         <div
                             key={chat.id}
-                            onClick={()=>{
+                            onClick={() => {
                                 router.push(`/chatBot/${chat.id}`)
                             }}
-                            className="group p-3 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                            className={`group p-3 rounded-lg transition cursor-pointer ${chat.id === currentChatId
+                                ? 'bg-blue-100 border-l-4 border-blue-600'
+                                : 'hover:bg-gray-100'
+                                }`}
                         >
                             <div className="flex items-start justify-between">
                                 <div className="flex-1 min-w-0">
@@ -147,13 +169,28 @@ export const RightSideBar = ({ chats }: { chats: ChatSession[] }) => {
                                         </span>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => togglePin(chat.id)}
-                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition ml-2"
-                                    title="Pin chat"
-                                >
-                                    <FiStar size={14} className="text-gray-400" />
-                                </button>
+                                <div className="flex items-center gap-1 ml-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            togglePin(chat.id)
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition"
+                                        title="Pin chat"
+                                    >
+                                        <FiStar size={14} className="text-gray-400" />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteChat(chat.id)
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition"
+                                        title="Delete chat"
+                                    >
+                                        <FiTrash2 size={14} className="text-red-600" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}

@@ -15,7 +15,7 @@ import {
     FiCircle
 } from "react-icons/fi";
 import { motion } from "framer-motion";
-import {ActivityCalendar} from "react-activity-calendar";
+import { ActivityCalendar } from "react-activity-calendar";
 
 export default function DashboardPage() {
     const [mood, setMood] = useState<string | null>(null);
@@ -187,43 +187,44 @@ export default function DashboardPage() {
                     {/* Weekly Streak Graph */}
                     <div className="lg:col-span-2">
                         <div>
-                        <Card className="bg-white p-6 shadow-sm border border-gray-200 h-full overflow-hidden">
-                            <div className="flex justify-between items-center mb-6">
-                                <div>
-                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                        <FiTrendingUp className="text-blue-600" /> Yearly Mood Heatmap
-                                    </h3>
-                                    <p className="text-sm text-gray-500 ml-7">Your emotional activity throughout the year</p>
+                            <Card className="bg-white p-6 shadow-sm border border-gray-200 h-full overflow-hidden">
+                                <div className="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                            <FiTrendingUp className="text-blue-600" /> Yearly Mood Heatmap
+                                        </h3>
+                                        <p className="text-sm text-gray-500 ml-7">Your emotional activity throughout the year</p>
+                                    </div>
                                 </div>
-                            </div>
                                 <div>
-                            <div className="flex items-center justify-center p-0 overflow-x-auto">
-                                <ActivityCalendar
-                                    data={activityData}
-                                    theme={{
-                                        light: ['#f3f4f6', '#dbeafe', '#93c5fd', '#3b82f6', '#1d4ed8'],
-                                        dark: ['#1f2937', '#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa'],
-                                    }}
-                                    labels={{
-                                        legend: {
-                                            less: 'Less',
-                                            more: 'More',
-                                        },
-                                        months: [
-                                            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-                                        ],
+                                    <div className="flex items-center justify-center p-0 overflow-hidden">
+                                        <ActivityCalendar
+                                            data={activityData}
+                                            theme={{
+                                                light: ['#f3f4f6', '#dbeafe', '#93c5fd', '#3b82f6', '#1d4ed8'],
+                                                dark: ['#1f2937', '#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa'],
+                                            }}
+                                            labels={{
+                                                legend: {
+                                                    less: 'Less',
+                                                    more: 'More',
+                                                },
+                                                months: [
+                                                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                                                ],
 
-                                    }}
-                                    showWeekdayLabels
-                                    blockSize={12}
-                                    blockRadius={2}
-                                    blockMargin={4}
-                                />
-                            </div>
-                            </div>
+                                            }}
+                                            showWeekdayLabels
+                                            blockSize={12}
+                                            blockRadius={2}
+                                            blockMargin={4}
 
-                        </Card>
+                                        />
+                                    </div>
+                                </div>
+
+                            </Card>
                         </div>
                     </div>
 
@@ -271,7 +272,7 @@ export default function DashboardPage() {
                                         animate={{ opacity: 1 }}
                                         className="text-center text-xs text-green-600 font-bold mt-2"
                                     >
-                                      All goals completed! Great job!
+                                        All goals completed! Great job!
                                     </motion.p>
                                 )}
                             </div>
