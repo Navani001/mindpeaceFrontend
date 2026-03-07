@@ -79,11 +79,11 @@ export default function SettingsPage() {
                     setProfileForm({ name: u.name || "", email: u.email || "", phoneNumber: u.phoneNumber || "" });
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
 
         getRequest("settings/trust-numbers", auth)
             .then((res: any) => setTrustNumbers(res?.data?.numbers || []))
-            .catch(() => {});
+            .catch(() => { });
     }, []);
 
     // ── Profile save ──────────────────────────────────────────────────────────

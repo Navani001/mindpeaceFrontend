@@ -8,8 +8,10 @@ import {
     FiPieChart,
     FiCalendar,
     FiSmile,
-    FiAward
+    FiAward,
+    FiVideo
 } from "react-icons/fi";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { getRequest } from "@/utils";
 
@@ -20,6 +22,7 @@ export default function AnalyticsPage() {
     const [totalCheckIns, setTotalCheckIns] = useState(0);
     const [avgMoodScore, setAvgMoodScore] = useState(0);
     const [mindfulMinutes, setMindfulMinutes] = useState(0);
+    const router = useRouter();
 
     const moodColorMap: Record<string, string> = {
         Great: "bg-green-500",
@@ -81,37 +84,37 @@ export default function AnalyticsPage() {
                 </header>
 
                 {/* Key Performance Indicators */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                                    <StatsCard
-                                        title="Current Streak"
-                                        value={`${streak} Days`}
-                                        icon={<FiActivity size={24} />}
-                                        color="text-orange-500"
-                                        bgColor="bg-orange-50"
-                                    />
-                                    <StatsCard
-                                        title="Total Check-ins"
-                                        value={String(totalCheckIns)}
-                                        icon={<FiCalendar size={24} />}
-                                        color="text-blue-500"
-                                        bgColor="bg-blue-50"
-                                    />
-                                    <StatsCard
-                                        title="Avg. Mood Score"
-                                        value={`${avgMoodScore}/5`}
-                                        icon={<FiSmile size={24} />}
-                                        color="text-green-500"
-                                        bgColor="bg-green-50"
-                                    />
-                                    <StatsCard
-                                        title="Mindful Minutes"
-                                        value={String(mindfulMinutes)}
-                                        icon={<FiAward size={24} />}
-                                        color="text-purple-500"
-                                        bgColor="bg-purple-50"
-                                    />
-                                </div>
-                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <StatsCard
+                        title="Current Streak"
+                        value={`${streak} Days`}
+                        icon={<FiActivity size={24} />}
+                        color="text-orange-500"
+                        bgColor="bg-orange-50"
+                    />
+                    <StatsCard
+                        title="Total Check-ins"
+                        value={String(totalCheckIns)}
+                        icon={<FiCalendar size={24} />}
+                        color="text-blue-500"
+                        bgColor="bg-blue-50"
+                    />
+                    <StatsCard
+                        title="Avg. Mood Score"
+                        value={`${avgMoodScore}/5`}
+                        icon={<FiSmile size={24} />}
+                        color="text-green-500"
+                        bgColor="bg-green-50"
+                    />
+                    <StatsCard
+                        title="Mindful Minutes"
+                        value={String(mindfulMinutes)}
+                        icon={<FiAward size={24} />}
+                        color="text-purple-500"
+                        bgColor="bg-purple-50"
+                    />
+                </div>
+
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                     {/* Weekly Mood Analysis */}
@@ -196,7 +199,39 @@ export default function AnalyticsPage() {
                     </Card>
                 </div>
 
-              
+                {/* Virtual Video Call with Psychiatrist */}
+                <motion.div
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                    <div
+                        className="p-6 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-lg cursor-pointer hover:shadow-xl transition-all hover:scale-[1.01]"
+                        onClick={() => router.push("/rooms/56789")}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                                    <FiVideo size={28} className="text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">Virtual Session with Psychiatrist</h3>
+                                    <p className="text-indigo-200 text-sm mt-1">
+                                        Connect face-to-face with a licensed psychiatrist from the comfort of your home.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                className="shrink-0 ml-6 px-5 py-2.5 bg-white text-indigo-700 font-semibold rounded-xl hover:bg-indigo-50 transition-colors text-sm"
+                                onClick={(e) => { e.stopPropagation(); router.push("/rooms/56789"); }}
+                            >
+                                Join Now
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+
+
             </main>
         </div>
     );

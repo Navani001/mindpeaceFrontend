@@ -32,20 +32,22 @@ export const Login = () => {
   return (
     <div className="min-h-screen w-full flex bg-gray-100">
       {/* Left Side - Image and Quote */}
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 relative overflow-hidden items-end p-12">
-        {/* Decorative geometric background */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl"></div>
-          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl"></div>
-          <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-400 rounded-full mix-blend-multiply filter blur-xl"></div>
-        </div>
+      <div className="hidden lg:flex w-1/2 relative overflow-hidden items-end p-12">
+        {/* Full cover background image */}
+        <img
+          src="https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=1200&q=80"
+          alt="Mental health"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
 
         {/* Quote Card */}
-        <div className="relative z-10 bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-8 max-w-sm">
+        <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-3xl p-8 max-w-sm border border-white/20">
           <p className="text-white text-lg font-semibold leading-relaxed mb-4">
             "Mental health is not a destination, but a process. It's about how you drive, not where you're going."
           </p>
-          <p className="text-white text-sm font-medium">- Noam Shpancer</p>
+          <p className="text-white/80 text-sm font-medium">- Noam Shpancer</p>
         </div>
       </div>
 
