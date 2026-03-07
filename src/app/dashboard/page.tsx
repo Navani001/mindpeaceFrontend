@@ -1,71 +1,123 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { SideBar } from "@/component/sidebar";
-import { Card, Button, Progress } from "@heroui/react";
+import { Card } from "@heroui/react";
 import {
     FiActivity,
     FiSmile,
     FiTrendingUp,
     FiCalendar,
     FiSun,
-    FiMoon,
-    FiCloud,
     FiAward,
     FiCheckCircle,
     FiCircle
 } from "react-icons/fi";
 import { motion } from "framer-motion";
-import { ActivityCalendar } from "react-activity-calendar";
+import dynamic from "next/dynamic";
+import { getRequest, patchRequest, postRequest } from "@/utils";
+
+const ActivityCalendar = dynamic(
+    () => import("react-activity-calendar").then((mod) => mod.ActivityCalendar),
+    { ssr: false }
+);
+
+type DashboardTask = {
+    id: string;
+    text: string;
+    completed: boolean;
+};
+
+const MOOD_OPTIONS = [
+    { label: "Awful", score: 1, icon: "😫", color: "bg-red-100 text-red-600 hover:bg-red-200" },
+    { label: "Bad", score: 2, icon: "😔", color: "bg-orange-100 text-orange-600 hover:bg-orange-200" },
+    { label: "Okay", score: 3, icon: "😐", color: "bg-yellow-100 text-yellow-600 hover:bg-yellow-200" },
+    { label: "Good", score: 4, icon: "🙂", color: "bg-blue-100 text-blue-600 hover:bg-blue-200" },
+    { label: "Great", score: 5, icon: "😄", color: "bg-green-100 text-green-600 hover:bg-green-200" },
+];
 
 export default function DashboardPage() {
     const [mood, setMood] = useState<string | null>(null);
-    const [tasks, setTasks] = useState([
-        { id: 1, text: "5-min Breathing Exercise", completed: false },
-        { id: 2, text: "Write 3 things you're grateful for", completed: false },
-        { id: 3, text: "Drink a glass of water", completed: false },
-        { id: 4, text: "Take a short walk", completed: false },
-    ]);
-
-    const toggleTask = (id: number) => {
-        setTasks(tasks.map(task =>
-            task.id === id ? { ...task, completed: !task.completed } : task
-        ));
-    };
-
-    const [streak, setStreak] = useState(6);
+    const [tasks, setTasks] = useState<DashboardTask[]>([]);
+    const [activityData, setActivityData] = useState<any[]>([]);
+    const [streak, setStreak] = useState(0);
+    const [totalCheckIns, setTotalCheckIns] = useState(0);
+    const [avgMoodScore, setAvgMoodScore] = useState(0);
+    const [mindfulMinutes, setMindfulMinutes] = useState(0);
     const [loading, setLoading] = useState(false);
 
-    // Mock data for yearly mood graph (heatmap)
-    const activityData = Array.from({ length: 305 }).map((_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (364 - i));
-        // Simulate random mood levels: 0 (no data) to 4 (high/great)
-        // Weighting it towards having data for realism
-        const hasData = Math.random() > 0.2;
-        const level = hasData ? Math.floor(Math.random() * 5) : 0;
+    const safeActivityData = activityData.length > 0
+        ? activityData.map((d: { date: string; count: number; level: number }) => ({
+            ...d,
+            level: Math.min(d.level, 4) as 0 | 1 | 2 | 3 | 4,
+        }))
+        : [{
+            date: new Date().toISOString().split("T")[0],
+            count: 0,
+            level: 0 as const,
+        }];
 
-        return {
-            date: date.toISOString().split("T")[0],
-            count: level, // ActivityCalendar uses count/level
-            level: level,
-        };
+    const getAuthHeader = () => ({
+        "authorization": "Bearer " + (typeof window !== "undefined" ? (localStorage.getItem("token") || "") : "")
     });
 
-    const handleMoodSelect = (selectedMood: string) => {
-        setLoading(true);
-        // Simulate API call
-        setTimeout(() => {
-            setMood(selectedMood);
-            setLoading(false);
-            // Here you would typically post to your backend
-            console.log("Mood logged:", selectedMood);
-        }, 1000);
+    useEffect(() => {
+        getRequest("analytics/dashboard", getAuthHeader()).then((res: any) => {
+            const data = res?.data || {};
+
+            setStreak(data.streak || 0);
+            setTotalCheckIns(data.totalCheckIns || 0);
+            setAvgMoodScore(data.avgMoodScore || 0);
+            setMindfulMinutes(data.mindfulMinutes || 0);
+            setMood(data.todayCheckIn?.moodLabel || null);
+            setActivityData(Array.isArray(data.activityData) ? data.activityData : []);
+
+            const todayTasks = Array.isArray(data.todayTasks) ? data.todayTasks : [];
+            setTasks(todayTasks.map((task: any) => ({
+                id: task.id,
+                text: task.taskText,
+                completed: task.completed
+            })));
+        }).catch((err: any) => {
+            console.error("Failed to fetch dashboard data:", err);
+        });
+    }, []);
+
+    const toggleTask = async (id: string) => {
+        const current = tasks.find((task) => task.id === id);
+        if (!current) return;
+
+        const nextCompleted = !current.completed;
+        setTasks((prevTasks) => prevTasks.map((task) =>
+            task.id === id ? { ...task, completed: nextCompleted } : task
+        ));
+
+        try {
+            await patchRequest(`analytics/tasks/${id}`, { completed: nextCompleted }, getAuthHeader());
+        } catch (err) {
+            setTasks((prevTasks) => prevTasks.map((task) =>
+                task.id === id ? { ...task, completed: current.completed } : task
+            ));
+            console.error("Failed to update task status:", err);
+        }
     };
 
-    const getMoodColor = (score: number) => {
-        if (score >= 4) return "bg-green-500";
-        if (score === 3) return "bg-yellow-500";
-        return "bg-red-500";
+    const handleMoodSelect = async (selectedMood: string) => {
+        setLoading(true);
+        const moodOption = MOOD_OPTIONS.find((item) => item.label === selectedMood);
+
+        try {
+            await postRequest("analytics/check-in", {
+                moodLabel: selectedMood,
+                moodScore: moodOption?.score || 3,
+            }, getAuthHeader());
+
+            setMood(selectedMood);
+            setTotalCheckIns((prev) => prev + 1);
+        } catch (err) {
+            console.error("Failed to save mood check-in:", err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -99,13 +151,7 @@ export default function DashboardPage() {
 
                                 {!mood ? (
                                     <div className="flex flex-wrap gap-3">
-                                        {[
-                                            { label: "Awful", icon: "😫", color: "bg-red-100 text-red-600 hover:bg-red-200" },
-                                            { label: "Bad", icon: "😔", color: "bg-orange-100 text-orange-600 hover:bg-orange-200" },
-                                            { label: "Okay", icon: "😐", color: "bg-yellow-100 text-yellow-600 hover:bg-yellow-200" },
-                                            { label: "Good", icon: "🙂", color: "bg-blue-100 text-blue-600 hover:bg-blue-200" },
-                                            { label: "Great", icon: "😄", color: "bg-green-100 text-green-600 hover:bg-green-200" },
-                                        ].map((item) => (
+                                        {MOOD_OPTIONS.map((item) => (
                                             <motion.button
                                                 key={item.label}
                                                 whileHover={{ scale: 1.05 }}
@@ -161,21 +207,21 @@ export default function DashboardPage() {
                     />
                     <StatsCard
                         title="Total Check-ins"
-                        value="42"
+                        value={String(totalCheckIns)}
                         icon={<FiCalendar size={24} />}
                         color="text-blue-500"
                         bgColor="bg-blue-50"
                     />
                     <StatsCard
                         title="Avg. Mood Score"
-                        value="3.8/5"
+                        value={`${avgMoodScore}/5`}
                         icon={<FiSmile size={24} />}
                         color="text-green-500"
                         bgColor="bg-green-50"
                     />
                     <StatsCard
                         title="Mindful Minutes"
-                        value="120"
+                        value={String(mindfulMinutes)}
                         icon={<FiAward size={24} />}
                         color="text-purple-500"
                         bgColor="bg-purple-50"
@@ -199,10 +245,10 @@ export default function DashboardPage() {
                                 <div>
                                     <div className="flex items-center justify-center p-0 overflow-hidden">
                                         <ActivityCalendar
-                                            data={activityData}
+                                            data={safeActivityData}
                                             theme={{
-                                                light: ['#f3f4f6', '#dbeafe', '#93c5fd', '#3b82f6', '#1d4ed8'],
-                                                dark: ['#1f2937', '#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa'],
+                                                light: ['#e5e7eb', '#14532d', '#166534', '#16a34a', '#22c55e'],
+                                                dark: ['#e5e7eb', '#14532d', '#166534', '#16a34a', '#22c55e'],
                                             }}
                                             labels={{
                                                 legend: {

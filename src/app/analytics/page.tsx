@@ -1,43 +1,66 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SideBar } from "@/component/sidebar";
-import { Card, Progress } from "@heroui/react";
+import { Card } from "@heroui/react";
 import {
     FiActivity,
     FiTrendingUp,
     FiPieChart,
-    FiBarChart2,
-    FiClock,
     FiCalendar,
-    FiArrowUp,
-    FiArrowDown,
     FiSmile,
     FiAward
 } from "react-icons/fi";
 import { motion } from "framer-motion";
+import { getRequest } from "@/utils";
 
 export default function AnalyticsPage() {
-    // Mock Data for Analytics
-    const moodDistribution = [
-        { label: "Great", percentage: 35, color: "bg-green-500" },
-        { label: "Good", percentage: 40, color: "bg-blue-500" },
-        { label: "Okay", percentage: 15, color: "bg-yellow-500" },
-        { label: "Bad", percentage: 7, color: "bg-orange-500" },
-        { label: "Awful", percentage: 3, color: "bg-red-500" },
-    ];
+    const [moodDistribution, setMoodDistribution] = useState<any[]>([]);
+    const [weeklyData, setWeeklyData] = useState<any[]>([]);
+    const [streak, setStreak] = useState(0);
+    const [totalCheckIns, setTotalCheckIns] = useState(0);
+    const [avgMoodScore, setAvgMoodScore] = useState(0);
+    const [mindfulMinutes, setMindfulMinutes] = useState(0);
 
-    // Mock weekly trend data
-    const weeklyData = [
-        { day: "Mon", score: 2, label: "Bad" },
-        { day: "Tue", score: 3, label: "Okay" },
-        { day: "Wed", score: 4, label: "Good" },
-        { day: "Thu", score: 3, label: "Okay" },
-        { day: "Fri", score: 5, label: "Great" },
-        { day: "Sat", score: 4, label: "Good" },
-        { day: "Sun", score: 5, label: "Great" },
-    ];
-    
-        const [streak, setStreak] = useState(6);
+    const moodColorMap: Record<string, string> = {
+        Great: "bg-green-500",
+        Good: "bg-blue-500",
+        Okay: "bg-yellow-500",
+        Bad: "bg-orange-500",
+        Awful: "bg-red-500",
+    };
+
+    const getAuthHeader = () => ({
+        "authorization": "Bearer " + (typeof window !== "undefined" ? (localStorage.getItem("token") || "") : "")
+    });
+
+    useEffect(() => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        if (!token) {
+            return;
+        }
+
+        Promise.all([
+            getRequest("analytics/insights", getAuthHeader()),
+            getRequest("analytics/dashboard", getAuthHeader()),
+        ]).then(([insightsRes, dashboardRes]: any[]) => {
+            const insightsData = insightsRes?.data || {};
+            const dashboardData = dashboardRes?.data || {};
+
+            setMoodDistribution(
+                (insightsData.moodDistribution || []).map((item: any) => ({
+                    ...item,
+                    color: moodColorMap[item.label] || "bg-gray-400"
+                }))
+            );
+            setWeeklyData(insightsData.weeklyData || []);
+            setTotalCheckIns(insightsData.totalCheckIns || 0);
+            setAvgMoodScore(insightsData.avgMoodScore || 0);
+            setStreak(dashboardData.streak || 0);
+            setMindfulMinutes(dashboardData.mindfulMinutes || 0);
+        }).catch((err: any) => {
+            console.error("Failed to fetch analytics data:", err);
+        });
+    }, []);
 
     const getMoodColor = (score: number) => {
         if (score >= 4) return "bg-green-500";
@@ -68,21 +91,21 @@ export default function AnalyticsPage() {
                                     />
                                     <StatsCard
                                         title="Total Check-ins"
-                                        value="42"
+                                        value={String(totalCheckIns)}
                                         icon={<FiCalendar size={24} />}
                                         color="text-blue-500"
                                         bgColor="bg-blue-50"
                                     />
                                     <StatsCard
                                         title="Avg. Mood Score"
-                                        value="3.8/5"
+                                        value={`${avgMoodScore}/5`}
                                         icon={<FiSmile size={24} />}
                                         color="text-green-500"
                                         bgColor="bg-green-50"
                                     />
                                     <StatsCard
                                         title="Mindful Minutes"
-                                        value="120"
+                                        value={String(mindfulMinutes)}
                                         icon={<FiAward size={24} />}
                                         color="text-purple-500"
                                         bgColor="bg-purple-50"

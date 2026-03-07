@@ -21,7 +21,7 @@ axiosClient.interceptors.response.use(
         return response.data; // Directly return the data instead of full response
     },
     (error) => {
-        console.error("Response Error:", error.response);
+        console.error("Response Error:", error.response || error.message || "Unknown network error");
         if (error.response?.status === 401) {
             console.log("Unauthorized! Redirecting to login...");
         }

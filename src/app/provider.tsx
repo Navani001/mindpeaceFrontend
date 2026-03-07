@@ -31,7 +31,7 @@ export function Providers({ children, themeProps }: ProvidersProps) {
                 themes={["light", "dark"]}
                 enableSystem={false}
             >
-                {children}
+                <div className="h-full">{children}</div>
             </NextThemesProvider>
         </HeroUIProvider>
     );

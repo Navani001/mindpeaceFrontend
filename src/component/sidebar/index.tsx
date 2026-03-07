@@ -60,7 +60,10 @@ export const SideBar = () => {
 
         {/* Bottom Section */}
         <div className="p-4 border-t border-gray-300 space-y-2">
-            <button className="flex items-center gap-3 w-full px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition">
+            <button
+                onClick={() => { setSelectedMenu("/settings"); router.push("/settings"); }}
+                className={`flex items-center gap-3 w-full px-4 py-2 text-gray-700 rounded-lg transition ${selectedMenu === "/settings" ? "bg-gray-200" : "hover:bg-gray-200"}`}
+            >
                 <FiSettings size={20} />
                 <span className="text-sm font-medium">Settings</span>
             </button>
