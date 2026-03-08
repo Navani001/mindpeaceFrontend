@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ConsultantSideBar } from "@/component/consultantSidebar";
 import { Card } from "@heroui/react";
 import {
@@ -10,19 +10,26 @@ import {
     FiCheckCircle,
     FiCircle,
     FiMessageSquare,
-    FiLock
+    FiLock,
+    FiAlertCircle
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import { getRequest } from "@/utils";
 
-const UPCOMING_SCHEDULE = [
-    { id: "1", client: "John Doe", time: "10:00 AM", type: "Therapy Session", status: "Confirmed" },
-    { id: "2", client: "Jane Smith", time: "02:00 PM", type: "Follow-up", status: "Pending" },
-    { id: "3", client: "Mike Johnson", time: "04:30 PM", type: "Initial Consultation", status: "Confirmed" },
-];
+type BookingStatus = "pending" | "accepted" | "rejected" | "completed";
+
+type Booking = {
+    id: string;
+    date: string;
+    time: string;
+    topic: string;
+    status: BookingStatus;
+    student: { id: number; name: string; email: string };
+};
 
 const DAILY_TASKS = [
-    { id: "1", text: "Review John's intake form", completed: true },
-    { id: "2", text: "Write session notes for Jane", completed: false },
+    { id: "1", text: "Review today's intake forms", completed: false },
+    { id: "2", text: "Prepare for upcoming sessions", completed: false },
     { id: "3", text: "Update availability for next week", completed: false },
 ];
 
@@ -31,22 +38,45 @@ export default function ConsultantDashboard() {
     const [tasks, setTasks] = useState(DAILY_TASKS);
     const [userRole, setUserRole] = useState<string | null>(null);
     const [userName, setUserName] = useState<string>("");
+    const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const getAuthHeader = () => ({
+        authorization: "Bearer " + (typeof window !== "undefined" ? localStorage.getItem("token") || "" : ""),
+    });
+
+    const fetchDashboardData = useCallback(async () => {
+        try {
+            const res: any = await getRequest("bookings/consultant", getAuthHeader());
+            if (res?.success) {
+                setBookings(res?.data?.bookings || []);
+            }
+        } catch (error) {
+            console.error("Failed to load dashboard data", error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
         const role = localStorage.getItem("role");
         const name = localStorage.getItem("userName") || "";
 
-        // if (!token) {
-        //     router.push("/login");
-        //     return;
-        // }
+        if (!token) {
+            router.push("/login");
+            return;
+        }
 
         setUserRole(role);
         setUserName(name);
-        setLoading(false);
-    }, [router]);
+
+        if (role === "consultant") {
+            fetchDashboardData();
+        } else {
+            router.push("/dashboard");
+        }
+    }, [router, fetchDashboardData]);
 
     if (loading) {
         return (
@@ -56,27 +86,19 @@ export default function ConsultantDashboard() {
         );
     }
 
-    // if (userRole !== "consultant") {
-    //     return (
-    //         <div className="flex h-screen w-full items-center justify-center bg-gray-50">
-    //             <Card className="p-8 max-w-md text-center shadow-lg border border-gray-200">
-    //                 <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-    //                     <FiLock size={32} />
-    //                 </div>
-    //                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-    //                 <p className="text-gray-600 mb-6">
-    //                     This area is reserved for consultants only. Please contact administration if you believe this is an error.
-    //                 </p>
-    //                 <button 
-    //                     onClick={() => router.push("/dashboard")}
-    //                     className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
-    //                 >
-    //                     Go to Student Dashboard
-    //                 </button>
-    //             </Card>
-    //         </div>
-    //     );
-    // }
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todaysSessions = bookings.filter(b => b.date === todayStr && (b.status === "accepted" || b.status === "completed"));
+    const activeClients = Array.from(new Set(bookings.map(b => b.student.id))).length;
+    const pendingRequests = bookings.filter(b => b.status === "pending").length;
+    
+    // Sort upcoming accepted sessions
+    const upcomingSchedule = bookings
+        .filter(b => b.status === "accepted")
+        .sort((a, b) => {
+            const dateComp = a.date.localeCompare(b.date);
+            return dateComp !== 0 ? dateComp : a.time.localeCompare(b.time);
+        })
+        .slice(0, 5);
 
     const toggleTask = (id: string) => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
@@ -90,7 +112,7 @@ export default function ConsultantDashboard() {
                 <header className="mb-8 flex justify-between items-center">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 text-blue-800">Consultant Portal</h1>
-                        <p className="text-gray-600 mt-1">Manage your clients and upcoming sessions</p>
+                        <p className="text-gray-600 mt-1">Welcome back, {userName}</p>
                     </div>
                     <div className="text-right">
                         <p className="text-sm font-semibold text-gray-900">
@@ -103,31 +125,31 @@ export default function ConsultantDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <StatsCard
                         title="Today's Sessions"
-                        value="8"
+                        value={todaysSessions.length.toString()}
                         icon={<FiCalendar size={24} />}
                         color="text-blue-500"
                         bgColor="bg-blue-50"
                     />
                     <StatsCard
                         title="Active Clients"
-                        value="24"
+                        value={activeClients.toString()}
                         icon={<FiUsers size={24} />}
                         color="text-green-500"
                         bgColor="bg-green-50"
                     />
                     <StatsCard
-                        title="Hours This Week"
-                        value="32h"
-                        icon={<FiClock size={24} />}
-                        color="text-purple-500"
-                        bgColor="bg-purple-50"
-                    />
-                    <StatsCard
-                        title="New Messages"
-                        value="5"
-                        icon={<FiMessageSquare size={24} />}
+                        title="Pending Requests"
+                        value={pendingRequests.toString()}
+                        icon={<FiAlertCircle size={24} />}
                         color="text-orange-500"
                         bgColor="bg-orange-50"
+                    />
+                    <StatsCard
+                        title="Total Bookings"
+                        value={bookings.length.toString()}
+                        icon={<FiActivity size={24} />}
+                        color="text-purple-500"
+                        bgColor="bg-purple-50"
                     />
                 </div>
 
@@ -142,26 +164,32 @@ export default function ConsultantDashboard() {
                                     <thead>
                                         <tr className="border-b border-gray-100 text-gray-400 text-sm">
                                             <th className="pb-3 font-medium">Client</th>
-                                            <th className="pb-3 font-medium">Time</th>
-                                            <th className="pb-3 font-medium">Type</th>
+                                            <th className="pb-3 font-medium">Date & Time</th>
+                                            <th className="pb-3 font-medium">Topic</th>
                                             <th className="pb-3 font-medium">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {UPCOMING_SCHEDULE.map((session) => (
-                                            <tr key={session.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="py-4 font-medium text-gray-900">{session.client}</td>
-                                                <td className="py-4 text-gray-600 text-sm">{session.time}</td>
-                                                <td className="py-4 text-gray-600 text-sm">{session.type}</td>
-                                                <td className="py-4">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                                        session.status === "Confirmed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                                                    }`}>
-                                                        {session.status}
-                                                    </span>
+                                        {upcomingSchedule.length > 0 ? (
+                                            upcomingSchedule.map((session) => (
+                                                <tr key={session.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="py-4 font-medium text-gray-900">{session.student.name}</td>
+                                                    <td className="py-4 text-gray-600 text-sm">{session.date} - {session.time}</td>
+                                                    <td className="py-4 text-gray-600 text-sm truncate max-w-[150px]">{session.topic}</td>
+                                                    <td className="py-4">
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700`}>
+                                                            Accepted
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={4} className="py-10 text-center text-gray-400 italic">
+                                                    No upcoming accepted sessions.
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -199,8 +227,6 @@ export default function ConsultantDashboard() {
     );
 }
 
-
-
 const StatsCard = ({ title, value, icon, color, bgColor }: any) => (
     <Card className="p-4 bg-white border border-gray-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
         <div className={`w-12 h-12 rounded-full ${bgColor} flex items-center justify-center ${color}`}>
@@ -212,3 +238,5 @@ const StatsCard = ({ title, value, icon, color, bgColor }: any) => (
         </div>
     </Card>
 );
+
+

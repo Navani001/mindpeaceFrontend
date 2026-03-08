@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { ConsultantSideBar } from "@/component/consultantSidebar";
-import { FiClock, FiCalendar, FiCheckCircle, FiAlertCircle, FiXCircle, FiMessageSquare, FiVideo, FiWifi, FiMapPin, FiSend } from "react-icons/fi";
+import { FiClock, FiCalendar, FiCheckCircle, FiAlertCircle, FiXCircle, FiMessageSquare, FiVideo, FiWifi, FiMapPin, FiSend, FiPlus } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { getRequest, patchRequest } from "@/utils";
 
-type BookingStatus = "pending" | "accepted" | "rejected";
+type BookingStatus = "pending" | "accepted" | "rejected" | "completed";
 
 type MeetingType = "online" | "offline";
 
@@ -21,9 +21,10 @@ type Booking = {
 };
 
 const STATUS_CONFIG:any = {
-    pending:  { label: "Pending",  color: "bg-yellow-100 text-yellow-700", icon: <FiAlertCircle size={13} /> },
-    accepted: { label: "Accepted", color: "bg-green-100 text-green-700",   icon: <FiCheckCircle size={13} /> },
-    rejected: { label: "Rejected", color: "bg-red-100 text-red-500",       icon: <FiXCircle size={13} /> },
+    pending:  { label: "Pending",   color: "bg-yellow-100 text-yellow-700", icon: <FiAlertCircle size={13} /> },
+    accepted: { label: "Accepted",  color: "bg-green-100 text-green-700",   icon: <FiCheckCircle size={13} /> },
+    rejected: { label: "Rejected",  color: "bg-red-100 text-red-500",       icon: <FiXCircle size={13} /> },
+    completed: { label: "Completed", color: "bg-blue-100 text-blue-700",    icon: <FiCheckCircle size={13} /> },
 };
 
 const AVATAR_COLORS = [
@@ -54,6 +55,8 @@ export default function UpcomingPage() {
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
     const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
     const [noteLoading, setNoteLoading] = useState<string | null>(null);
+    const [isStatusLoading, setIsStatusLoading] = useState<string | null>(null);
+    const [showNotePopup, setShowNotePopup] = useState<string | null>(null); // bookingId of the booking being completed
 
     const getAuthHeader = () => ({
         authorization: "Bearer " + (typeof window !== "undefined" ? localStorage.getItem("token") || "" : ""),
@@ -124,14 +127,46 @@ export default function UpcomingPage() {
                 setBookings(prev =>
                     prev.map(b => b.id === bookingId ? { ...b, consultantNote: note } : b)
                 );
-                showToast("Note sent to student!", "success");
+                showToast("Note updated!", "success");
             } else {
-                showToast(res?.message || "Failed to send note", "error");
+                showToast(res?.message || "Update failed", "error");
             }
         } catch {
-            showToast("Failed to send note", "error");
+            showToast("Network error", "error");
         } finally {
             setNoteLoading(null);
+        }
+    };
+
+    const handleCompleteSession = async (bookingId: string) => {
+        const note = noteInputs[bookingId]?.trim();
+        setIsStatusLoading(bookingId);
+        
+        console.log("Submitting completion for:", bookingId, "Note:", note);
+        
+        try {
+            // 1. Submit note if present
+            if (note) {
+                await patchRequest(`bookings/${bookingId}/note`, { consultantNote: note }, getAuthHeader());
+            }
+            
+            // 2. Update status to completed
+            const res: any = await patchRequest(`bookings/${bookingId}/status`, { status: "completed" }, getAuthHeader());
+            
+            console.log("Completion response:", res);
+
+            if (res?.success) {
+                setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: "completed", consultantNote: note || b.consultantNote } : b));
+                showToast("Session completed successfully!", "success");
+                setShowNotePopup(null);
+            } else {
+                showToast(res?.message || "Failed to complete session", "error");
+            }
+        } catch (err) {
+            console.error("Completion error:", err);
+            showToast("Something went wrong", "error");
+        } finally {
+            setIsStatusLoading(null);
         }
     };
 
@@ -142,6 +177,7 @@ export default function UpcomingPage() {
         pending:  bookings.filter(b => b.status === "pending").length,
         accepted: bookings.filter(b => b.status === "accepted").length,
         rejected: bookings.filter(b => b.status === "rejected").length,
+        completed: bookings.filter(b => b.status === "completed").length,
     };
 
     if (loading) return (
@@ -156,13 +192,69 @@ export default function UpcomingPage() {
 
             {/* Toast */}
             {toast && (
-                <div className={`fixed top-5 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow text-sm font-medium border
+                <div className={`fixed top-5 right-6 z-[60] flex items-center gap-3 px-5 py-3 rounded-xl shadow text-sm font-medium border
                     ${toast.type === "success"
                         ? "bg-green-50 text-green-700 border-green-200"
                         : "bg-red-50 text-red-700 border-red-200"
                     }`}>
                     {toast.type === "success" ? <FiCheckCircle size={16} /> : <FiAlertCircle size={16} />}
                     {toast.msg}
+                </div>
+            )}
+
+            {/* Note Submission Popup */}
+            {showNotePopup && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-900 leading-none">Complete Session</h3>
+                            <button 
+                                onClick={() => setShowNotePopup(null)}
+                                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <FiXCircle size={20} className="text-gray-400" />
+                            </button>
+                        </div>
+                        
+                        <p className="text-sm text-gray-500 mb-5 leading-relaxed">
+                            Marking this session as completed. You can leave a concluding note or instructions for the student below.
+                        </p>
+
+                        <div className="relative group">
+                            <div className="absolute top-2.5 left-3 text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                                <FiMessageSquare size={16} />
+                            </div>
+                            <textarea
+                                rows={4}
+                                placeholder="E.g., Great progress today! Remember to practice the breathing techniques we discussed..."
+                                value={noteInputs[showNotePopup] || ""}
+                                onChange={e => setNoteInputs(prev => ({ ...prev, [showNotePopup]: e.target.value }))}
+                                className="w-full border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-700 resize-none transition-all outline-none"
+                                maxLength={1000}
+                            />
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => setShowNotePopup(null)}
+                                className="flex-1 border-2 py-3 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => handleCompleteSession(showNotePopup)}
+                                disabled={!!isStatusLoading}
+                                className="flex-1 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200 disabled:opacity-70 transition-all flex items-center justify-center gap-2"
+                            >
+                                {isStatusLoading ? "Processing..." : (
+                                    <>
+                                        Finish & Close
+                                        <FiCheckCircle size={16} />
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -273,44 +365,33 @@ export default function UpcomingPage() {
                                         )}
 
                                         {booking.status === "accepted" && (
-                                            <button
-                                                onClick={() => router.push(`/rooms/${booking.id}`)}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition"
-                                            >
-                                                <FiVideo size={12} /> Open Meeting
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => router.push(`/rooms/${booking.id}`)}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition"
+                                                >
+                                                    <FiVideo size={12} /> Open Meeting
+                                                </button>
+                                                <button 
+                                                    onClick={() => setShowNotePopup(booking.id)}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition shadow-md shadow-blue-100"
+                                                >
+                                                    <FiCheckCircle size={12} /> Submit
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
 
-                                {/* Consultant Note Section */}
-                                {booking.status === "accepted" && (
+                                {/* Completed Note Display */}
+                                {booking.status === "completed" && booking.consultantNote && (
                                     <div className="px-5 pb-5">
                                         <div className="border-t border-gray-100 pt-4">
-                                            {booking?.consultantNote && (
-                                                <div className="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                                                    <p className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
-                                                        <FiMessageSquare size={11} /> Sent Note
-                                                    </p>
-                                                    <p className="text-xs text-gray-700">{booking.consultantNote}</p>
-                                                </div>
-                                            )}
-                                            <div className="flex gap-2 items-end">
-                                                <textarea
-                                                    rows={2}
-                                                    placeholder="Send a note or instructions to the student..."
-                                                    value={noteInputs[booking.id] || ""}
-                                                    onChange={e => setNoteInputs(prev => ({ ...prev, [booking.id]: e.target.value }))}
-                                                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-gray-400"
-                                                    maxLength={500}
-                                                />
-                                                <button
-                                                    onClick={() => handleNoteSubmit(booking.id)}
-                                                    disabled={noteLoading === booking.id || !noteInputs[booking.id]?.trim()}
-                                                    className="flex items-center gap-1.5 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50 flex-shrink-0"
-                                                >
-                                                    {noteLoading === booking.id ? "..." : (<><FiSend size={12} /> Send</>)}
-                                                </button>
+                                            <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
+                                                <p className="text-[10px] font-black text-blue-500 mb-1 flex items-center gap-1 uppercase tracking-widest">
+                                                    <FiMessageSquare size={11} /> Concluding Note
+                                                </p>
+                                                <p className="text-[11px] font-bold text-slate-700 leading-relaxed italic">"{booking.consultantNote}"</p>
                                             </div>
                                         </div>
                                     </div>

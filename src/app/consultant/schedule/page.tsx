@@ -1,9 +1,10 @@
     "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ConsultantSideBar } from "@/component/consultantSidebar";
 import { Card } from "@heroui/react";
 import { FiCalendar, FiClock, FiUser, FiLock, FiPlus, FiTrash2 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import { getRequest } from "@/utils";
 
 type Session = {
     id: string;
@@ -15,25 +16,17 @@ type Session = {
     notes: string;
 };
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-const INITIAL_SESSIONS: Session[] = [
-    { id: "1", client: "John Doe", date: "2026-03-09", time: "09:00", duration: "60 min", type: "Therapy", notes: "Follow-up on anxiety triggers" },
-    { id: "2", client: "Jane Smith", date: "2026-03-09", time: "11:00", duration: "45 min", type: "Check-in", notes: "" },
-    { id: "3", client: "Mike Johnson", date: "2026-03-10", time: "14:00", duration: "60 min", type: "Intake", notes: "First session" },
-    { id: "4", client: "Sara Lee", date: "2026-03-11", time: "10:00", duration: "30 min", type: "Check-in", notes: "" },
-    { id: "5", client: "Tom Brown", date: "2026-03-12", time: "16:00", duration: "60 min", type: "Therapy", notes: "CBT session" },
-];
-
 const TYPE_COLORS: Record<string, string> = {
     Therapy: "bg-blue-100 text-blue-700",
     "Check-in": "bg-green-100 text-green-700",
     Intake: "bg-purple-100 text-purple-700",
+    Online: "bg-indigo-100 text-indigo-700",
+    Office: "bg-orange-100 text-orange-700",
 };
 
 export default function SchedulePage() {
     const router = useRouter();
-    const [sessions, setSessions] = useState<Session[]>(INITIAL_SESSIONS);
+    const [sessions, setSessions] = useState<Session[]>([]);
     const [userRole, setUserRole] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -41,13 +34,43 @@ export default function SchedulePage() {
         client: "", date: "", time: "", duration: "60 min", type: "Therapy", notes: "",
     });
 
+    const fetchSessions = useCallback(async () => {
+        try {
+            const res: any = await getRequest("bookings/consultant", {
+                authorization: "Bearer " + localStorage.getItem("token")
+            });
+            if (res?.success) {
+                const mapped: Session[] = res.data.bookings
+                    .filter((b: any) => b.status === "accepted" || b.status === "completed")
+                    .map((b: any) => ({
+                        id: b.id,
+                        client: b.student.name,
+                        date: b.date,
+                        time: b.time,
+                        duration: "60 min",
+                        type: b.meetingType === "online" ? "Online" : "Office",
+                        notes: b.topic
+                    }));
+                setSessions(mapped);
+            }
+        } catch (error) {
+            console.error("Failed to fetch sessions", error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         const token = localStorage.getItem("token");
         const role = localStorage.getItem("role");
         if (!token) { router.push("/login"); return; }
         setUserRole(role);
-        setLoading(false);
-    }, [router]);
+        if (role === "consultant") {
+            fetchSessions();
+        } else {
+            setLoading(false);
+        }
+    }, [router, fetchSessions]);
 
     if (loading) return (
         <div className="flex h-screen w-full items-center justify-center bg-gray-50">
