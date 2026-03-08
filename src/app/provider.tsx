@@ -23,9 +23,9 @@ declare module "@react-types/shared" {
 export function Providers({ children, themeProps }: ProvidersProps) {
     const router = useRouter();
 
-    return (    
+    return (
         <HeroUIProvider navigate={router.push}>
-            <NextThemesProvider 
+            <NextThemesProvider
                 attribute="data-theme"
                 defaultTheme="light"
                 themes={["light", "dark"]}

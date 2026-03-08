@@ -23,6 +23,12 @@ export const Login = () => {
     setIsLoading(true);
     postRequest("auth/login", { email }).then((res: any) => {
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.user?.role || "student");
+      localStorage.setItem("userName", res.data.user?.name || "");
+      if(res.data.user?.role === "consultant"){
+        router.push("/consultant/dashboard")
+        return;
+      }
       setIsLoading(false);
       router.push(`/chatBot/${res.data.chatId}`);
 

@@ -2,7 +2,7 @@
 import { a } from "framer-motion/dist/types.d-D0HXPxHm";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FiBarChart2, FiBook, FiHome, FiSettings, FiUser } from "react-icons/fi"
+import { FiBarChart2, FiBook, FiHome, FiSettings, FiUser, FiVideo } from "react-icons/fi"
 
 declare global {
     interface Window {
@@ -56,6 +56,24 @@ export const SideBar = () => {
                     <span className="text-sm font-medium">chatBot</span>
                 </a>
             </div>
+            <div onClick={() => {
+                setSelectedMenu("/book-session")
+                router.push("/book-session")
+            }}  >
+                <a href="#" className={`flex items-center gap-3 px-4 py-2 text-gray-700 rounded-lg transition ${selectedMenu === "/book-session" ? "bg-gray-200 hover:bg-gray-200" : "hover:bg-gray-200"}`}>
+                    <FiVideo size={20} />
+                    <span className="text-sm font-medium">Book Session</span>
+                </a>
+            </div>
+            {/* <div onClick={() => {
+                setSelectedMenu("/consultant/dashboard")
+                router.push("/consultant/dashboard")
+            }}  >
+                <a href="#" className={`flex items-center gap-3 px-4 py-2 text-gray-700 rounded-lg transition ${selectedMenu.startsWith("/consultant") ? "bg-gray-200 hover:bg-gray-200" : "hover:bg-gray-200"}`}>
+                    <FiUser size={20} />
+                    <span className="text-sm font-medium">Consultant</span>
+                </a>
+            </div> */}
         </nav>
 
         {/* Bottom Section */}
