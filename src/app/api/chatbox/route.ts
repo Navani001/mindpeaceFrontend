@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: google("gemini-2.5-flash-lite"),
+    model: google("gemini-2.5-flash"),
     system:"you are mind peace ai assistant helping user to achieve mental peace and provide useful information related to mental peace and mental health",
     messages
   });

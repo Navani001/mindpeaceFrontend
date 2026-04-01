@@ -42,11 +42,9 @@ export const useDebugMode = ({ logLevel }: { logLevel?: LogLevel }) => {
       });
     }
 
-    // @ts-expect-error
     window.__lk_room = room;
 
     return () => {
-      // @ts-expect-error
       window.__lk_room = undefined;
     };
   }, [room, logLevel]);
@@ -90,7 +88,7 @@ export const DebugMode = ({ logLevel }: { logLevel?: LogLevel }) => {
   }
 
   const handleSimulate = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const { value } = event.target;
+    const { value }:any = event.target;
     if (value == '') {
       return;
     }
@@ -102,7 +100,6 @@ export const DebugMode = ({ logLevel }: { logLevel?: LogLevel }) => {
 
       // fall through
       default:
-        // @ts-expect-error
         room.simulateScenario(value);
     }
   };
