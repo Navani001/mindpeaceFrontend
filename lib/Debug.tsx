@@ -88,7 +88,7 @@ export const DebugMode = ({ logLevel }: { logLevel?: LogLevel }) => {
   }
 
   const handleSimulate = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const { value } = event.target;
+    const { value }:any = event.target;
     if (value == '') {
       return;
     }
