@@ -55,10 +55,11 @@ describe('Chatbot Component - Fetching Chatbox Content', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     localStorage.getItem = jest.fn(() => 'mock-token')
-    ;(apiUtils.getRequest as jest.Mock).mockResolvedValue({ data: {} })
-    ;(apiUtils.postRequest as jest.Mock).mockResolvedValue({ data: {} })
+      ; (apiUtils.getRequest as jest.Mock).mockResolvedValue({ data: {} })
+      ; (apiUtils.postRequest as jest.Mock).mockResolvedValue({ data: {} })
   })
 
+  
   test('should fetch and display chat list on component mount', async () => {
     render(<Chatbot id="chat-1" />)
 
