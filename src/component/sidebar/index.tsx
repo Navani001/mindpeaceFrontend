@@ -1,8 +1,8 @@
 "use client"
-import { a } from "framer-motion/dist/types.d-D0HXPxHm";
+import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FiBarChart2, FiBook, FiHome, FiSettings, FiUser, FiVideo } from "react-icons/fi"
+import { FiBarChart2, FiBook, FiHome, FiLogOut, FiSettings, FiUser, FiVideo } from "react-icons/fi"
 
 declare global {
     interface Window {
@@ -11,6 +11,7 @@ declare global {
 }
 export const SideBar = () => {
     const [selectedMenu, setSelectedMenu] = useState("");
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -18,6 +19,18 @@ export const SideBar = () => {
             setSelectedMenu(window.location.pathname);
         }
     }, []);
+
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("userName");
+
+        // await signOut({ redirect: false });
+        setIsLoggingOut(false);
+        router.push("/login");
+    };
+
     return <aside className="w-56 border-r border-gray-300 bg-gray-100 flex flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-gray-300">
@@ -84,6 +97,14 @@ export const SideBar = () => {
             >
                 <FiSettings size={20} />
                 <span className="text-sm font-medium">Settings</span>
+            </button>
+            <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="flex items-center gap-3 w-full px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-200 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+                <FiLogOut size={20} />
+                <span className="text-sm font-medium">{isLoggingOut ? "Logging out..." : "Log Out"}</span>
             </button>
             <div className="flex items-center gap-3 px-4 py-3 bg-gray-200 rounded-lg">
                 <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
