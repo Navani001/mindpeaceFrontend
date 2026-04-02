@@ -4,7 +4,7 @@ import { auth } from "../auth";
 console.log(process.env.NEXT_PUBLIC_BASE_URL )
 // Create an Axios instance
 const axiosClient = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_BASE_URL || "http://ec2-13-232-26-119.ap-south-1.compute.amazonaws.com/api/",// Replace with your API URL
+    baseURL: process.env.NEXT_PUBLIC_BASE_URL || "https://mindpeacebackend.vercel.app/api/",// Replace with your API URL
     headers: {
         "Content-Type": "application/json",
         // Authorization: `Bearer ${auth()?.token || ""}`, // Use auth token if available
