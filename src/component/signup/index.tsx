@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@heroui/react";
 import { FcGoogle } from "react-icons/fc";
 import { signIn } from "next-auth/react";
-import { MdMailOutline, MdVisibility, MdVisibilityOff, MdPerson } from "react-icons/md";
+import { MdMailOutline, MdVisibility, MdVisibilityOff, MdPerson, MdPhone } from "react-icons/md";
 import Link from "next/link";
 import { postRequest } from "@/utils/axios/axios";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation";
 export const Signup = () => {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [role, setRole] = useState<"student" | "consultant">("student");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +43,10 @@ export const Signup = () => {
             setError("Please enter a valid email");
             return false;
         }
+        if (!phoneNumber.trim()) {
+            setError("Phone number is required");
+            return false;
+        }
         if (!password) {
             setError("Password is required");
             return false;
@@ -68,12 +74,14 @@ export const Signup = () => {
                 name,
                 email,
                 password,
+                phoneNumber,
+                role,
             });
             localStorage.setItem("token", res.data.token);
             localStorage.setItem("role", res.data.user?.role || "student");
             localStorage.setItem("userName", res.data.user?.name || "");
             setIsLoading(false);
-            router.push(`/chatBot/${res.data.chatId}`);
+            router.push("/login");
         } catch (err: any) {
             setIsLoading(false);
             setError(err.response?.data?.message || "Failed to create account. Please try again.");
@@ -136,6 +144,33 @@ export const Signup = () => {
                         </div>
                     )}
 
+                    {/* Role Selection */}
+                    <div className="mb-4">
+                        {/* <p className="text-sm font-medium text-gray-700 mb-2">Create account as</p> */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setRole("student")}
+                                className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${role === "student"
+                                        ? "bg-blue-600 text-white border-blue-600"
+                                        : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
+                                    }`}
+                            >
+                                Student
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setRole("consultant")}
+                                className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${role === "consultant"
+                                        ? "bg-blue-600 text-white border-blue-600"
+                                        : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
+                                    }`}
+                            >
+                                Consultant
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Name Input */}
                     <div className="mb-4">
                         <div className="flex items-center gap-3 px-4 py-3 border border-gray-300 rounded-lg focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400">
@@ -159,6 +194,20 @@ export const Signup = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="Email id"
+                                className="flex-1 bg-transparent outline-none text-gray-900 placeholder-gray-500"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Phone Number Input */}
+                    <div className="mb-4">
+                        <div className="flex items-center gap-3 px-4 py-3 border border-gray-300 rounded-lg focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400">
+                            <MdPhone className="text-xl text-gray-400" />
+                            <input
+                                type="tel"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                placeholder="Phone number (e.g. +911234567890)"
                                 className="flex-1 bg-transparent outline-none text-gray-900 placeholder-gray-500"
                             />
                         </div>
