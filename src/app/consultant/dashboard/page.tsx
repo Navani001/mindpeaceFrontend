@@ -40,6 +40,7 @@ export default function ConsultantDashboard() {
     const [userName, setUserName] = useState<string>("");
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
+    const [upcomingPage, setUpcomingPage] = useState(1);
 
     const getAuthHeader = () => ({
         authorization: "Bearer " + (typeof window !== "undefined" ? localStorage.getItem("token") || "" : ""),
@@ -78,6 +79,33 @@ export default function ConsultantDashboard() {
         }
     }, [router, fetchDashboardData]);
 
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todaysSessions = bookings.filter(b => b.date === todayStr && (b.status === "accepted" || b.status === "completed"));
+    const activeClients = Array.from(new Set(bookings.map(b => b.student.id))).length;
+    const pendingRequests = bookings.filter(b => b.status === "pending").length;
+
+    // Sort upcoming accepted sessions
+    const UPCOMING_PER_PAGE = 5;
+
+    const upcomingSchedule = bookings
+        .filter(b => b.status === "accepted")
+        .sort((a, b) => {
+            const dateComp = a.date.localeCompare(b.date);
+            return dateComp !== 0 ? dateComp : a.time.localeCompare(b.time);
+        });
+
+    const upcomingTotalPages = Math.max(1, Math.ceil(upcomingSchedule.length / UPCOMING_PER_PAGE));
+    const paginatedUpcoming = upcomingSchedule.slice(
+        (upcomingPage - 1) * UPCOMING_PER_PAGE,
+        upcomingPage * UPCOMING_PER_PAGE
+    );
+
+    useEffect(() => {
+        if (upcomingPage > upcomingTotalPages) {
+            setUpcomingPage(upcomingTotalPages);
+        }
+    }, [upcomingPage, upcomingTotalPages]);
+
     if (loading) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-gray-50">
@@ -85,20 +113,6 @@ export default function ConsultantDashboard() {
             </div>
         );
     }
-
-    const todayStr = new Date().toISOString().split("T")[0];
-    const todaysSessions = bookings.filter(b => b.date === todayStr && (b.status === "accepted" || b.status === "completed"));
-    const activeClients = Array.from(new Set(bookings.map(b => b.student.id))).length;
-    const pendingRequests = bookings.filter(b => b.status === "pending").length;
-    
-    // Sort upcoming accepted sessions
-    const upcomingSchedule = bookings
-        .filter(b => b.status === "accepted")
-        .sort((a, b) => {
-            const dateComp = a.date.localeCompare(b.date);
-            return dateComp !== 0 ? dateComp : a.time.localeCompare(b.time);
-        })
-        .slice(0, 5);
 
     const toggleTask = (id: string) => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
@@ -111,7 +125,7 @@ export default function ConsultantDashboard() {
             <main className="flex-1 overflow-y-auto p-8">
                 <header className="mb-8 flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 text-blue-800">Consultant Portal</h1>
+                        <h1 className="text-3xl font-bold text-blue-800">Consultant Portal</h1>
                         <p className="text-gray-600 mt-1">Welcome back, {userName}</p>
                     </div>
                     <div className="text-right">
@@ -170,8 +184,8 @@ export default function ConsultantDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {upcomingSchedule.length > 0 ? (
-                                            upcomingSchedule.map((session) => (
+                                        {paginatedUpcoming.length > 0 ? (
+                                            paginatedUpcoming.map((session) => (
                                                 <tr key={session.id} className="hover:bg-gray-50 transition-colors">
                                                     <td className="py-4 font-medium text-gray-900">{session.student.name}</td>
                                                     <td className="py-4 text-gray-600 text-sm">{session.date} - {session.time}</td>
@@ -193,6 +207,28 @@ export default function ConsultantDashboard() {
                                     </tbody>
                                 </table>
                             </div>
+
+                            {upcomingSchedule.length > UPCOMING_PER_PAGE && (
+                                <div className="mt-4 flex items-center justify-between">
+                                    <button
+                                        onClick={() => setUpcomingPage((p) => Math.max(1, p - 1))}
+                                        disabled={upcomingPage === 1}
+                                        className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Previous
+                                    </button>
+                                    <span className="text-sm text-gray-500">
+                                        Page {upcomingPage} of {upcomingTotalPages}
+                                    </span>
+                                    <button
+                                        onClick={() => setUpcomingPage((p) => Math.min(upcomingTotalPages, p + 1))}
+                                        disabled={upcomingPage === upcomingTotalPages}
+                                        className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            )}
                         </Card>
                     </section>
 
@@ -206,9 +242,8 @@ export default function ConsultantDashboard() {
                                     <div
                                         key={task.id}
                                         onClick={() => toggleTask(task.id)}
-                                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${
-                                            task.completed ? "bg-green-50 border-green-200" : "bg-white border-gray-100 hover:border-blue-200"
-                                        }`}
+                                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${task.completed ? "bg-green-50 border-green-200" : "bg-white border-gray-100 hover:border-blue-200"
+                                            }`}
                                     >
                                         <div className={task.completed ? "text-green-600" : "text-gray-400"}>
                                             {task.completed ? <FiCheckCircle size={18} /> : <FiCircle size={18} />}

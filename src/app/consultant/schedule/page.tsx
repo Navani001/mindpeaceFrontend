@@ -1,4 +1,4 @@
-    "use client";
+"use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { ConsultantSideBar } from "@/component/consultantSidebar";
 import { Card } from "@heroui/react";
@@ -29,6 +29,7 @@ export default function SchedulePage() {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [userRole, setUserRole] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState<Omit<Session, "id">>({
         client: "", date: "", time: "", duration: "60 min", type: "Therapy", notes: "",
@@ -72,6 +73,19 @@ export default function SchedulePage() {
         }
     }, [router, fetchSessions]);
 
+    const DATES_PER_PAGE = 3;
+
+    // Get unique week dates from sessions
+    const allDates = Array.from(new Set(sessions.map(s => s.date))).sort();
+    const totalPages = Math.max(1, Math.ceil(allDates.length / DATES_PER_PAGE));
+    const paginatedDates = allDates.slice((currentPage - 1) * DATES_PER_PAGE, currentPage * DATES_PER_PAGE);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
     if (loading) return (
         <div className="flex h-screen w-full items-center justify-center bg-gray-50">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
@@ -92,9 +106,6 @@ export default function SchedulePage() {
             </Card>
         </div>
     );
-
-    // Get unique week dates from sessions
-    const allDates = Array.from(new Set(sessions.map(s => s.date))).sort();
 
     const addSession = () => {
         if (!form.client || !form.date || !form.time) return;
@@ -176,7 +187,7 @@ export default function SchedulePage() {
 
                 {/* Sessions by Date */}
                 <div className="space-y-6">
-                    {allDates.map(date => (
+                    {paginatedDates.map(date => (
                         <div key={date}>
                             <div className="flex items-center gap-2 mb-3">
                                 <FiCalendar className="text-blue-500" size={16} />
@@ -236,6 +247,32 @@ export default function SchedulePage() {
                             <p className="text-sm">No sessions scheduled. Add one above.</p>
                         </div>
                     )}
+
+                    <div className="flex items-center justify-between pt-2">
+                        <p className="text-sm text-gray-500">
+                            Showing {allDates.length === 0 ? 0 : (currentPage - 1) * DATES_PER_PAGE + 1}
+                            -{Math.min(currentPage * DATES_PER_PAGE, allDates.length)} of {allDates.length} date groups
+                        </p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            <span className="text-sm text-gray-500">
+                                Page {currentPage} of {totalPages}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>

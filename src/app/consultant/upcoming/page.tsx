@@ -20,11 +20,11 @@ type Booking = {
     student: { id: number; name: string; email: string };
 };
 
-const STATUS_CONFIG:any = {
-    pending:  { label: "Pending",   color: "bg-yellow-100 text-yellow-700", icon: <FiAlertCircle size={13} /> },
-    accepted: { label: "Accepted",  color: "bg-green-100 text-green-700",   icon: <FiCheckCircle size={13} /> },
-    rejected: { label: "Rejected",  color: "bg-red-100 text-red-500",       icon: <FiXCircle size={13} /> },
-    completed: { label: "Completed", color: "bg-blue-100 text-blue-700",    icon: <FiCheckCircle size={13} /> },
+const STATUS_CONFIG: any = {
+    pending: { label: "Pending", color: "bg-yellow-100 text-yellow-700", icon: <FiAlertCircle size={13} /> },
+    accepted: { label: "Accepted", color: "bg-green-100 text-green-700", icon: <FiCheckCircle size={13} /> },
+    rejected: { label: "Rejected", color: "bg-red-100 text-red-500", icon: <FiXCircle size={13} /> },
+    completed: { label: "Completed", color: "bg-blue-100 text-blue-700", icon: <FiCheckCircle size={13} /> },
 };
 
 const AVATAR_COLORS = [
@@ -51,6 +51,7 @@ export default function UpcomingPage() {
     const [bookings, setBookings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<"all" | BookingStatus>("all");
+    const [currentPage, setCurrentPage] = useState(1);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
     const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
@@ -141,18 +142,18 @@ export default function UpcomingPage() {
     const handleCompleteSession = async (bookingId: string) => {
         const note = noteInputs[bookingId]?.trim();
         setIsStatusLoading(bookingId);
-        
+
         console.log("Submitting completion for:", bookingId, "Note:", note);
-        
+
         try {
             // 1. Submit note if present
             if (note) {
                 await patchRequest(`bookings/${bookingId}/note`, { consultantNote: note }, getAuthHeader());
             }
-            
+
             // 2. Update status to completed
             const res: any = await patchRequest(`bookings/${bookingId}/status`, { status: "completed" }, getAuthHeader());
-            
+
             console.log("Completion response:", res);
 
             if (res?.success) {
@@ -171,10 +172,23 @@ export default function UpcomingPage() {
     };
 
     const filtered = filter === "all" ? bookings : bookings.filter(b => b.status === filter);
+    const ROWS_PER_PAGE = 8;
+    const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
+    const paginatedBookings = filtered.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filter]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     const counts = {
-        all:      bookings.length,
-        pending:  bookings.filter(b => b.status === "pending").length,
+        all: bookings.length,
+        pending: bookings.filter(b => b.status === "pending").length,
         accepted: bookings.filter(b => b.status === "accepted").length,
         rejected: bookings.filter(b => b.status === "rejected").length,
         completed: bookings.filter(b => b.status === "completed").length,
@@ -208,14 +222,14 @@ export default function UpcomingPage() {
                     <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xl font-bold text-gray-900 leading-none">Complete Session</h3>
-                            <button 
+                            <button
                                 onClick={() => setShowNotePopup(null)}
                                 className="p-1 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <FiXCircle size={20} className="text-gray-400" />
                             </button>
                         </div>
-                        
+
                         <p className="text-sm text-gray-500 mb-5 leading-relaxed">
                             Marking this session as completed. You can leave a concluding note or instructions for the student below.
                         </p>
@@ -275,11 +289,10 @@ export default function UpcomingPage() {
                         <button
                             key={key}
                             onClick={() => setFilter(key)}
-                            className={`p-4 rounded-xl border text-left transition-all capitalize ${
-                                filter === key
+                            className={`p-4 rounded-xl border text-left transition-all capitalize ${filter === key
                                     ? "bg-gray-800 border-gray-800 text-white shadow"
                                     : "bg-white border-gray-300 text-gray-700 hover:border-gray-400"
-                            }`}
+                                }`}
                         >
                             <p className={`text-2xl font-bold ${filter === key ? "text-white" : "text-gray-900"}`}>
                                 {counts[key]}
@@ -291,121 +304,160 @@ export default function UpcomingPage() {
                     ))}
                 </div>
 
-                {/* Booking Cards */}
-                <div className="space-y-3">
-                    {filtered.map(booking => {
-                        const cfg = STATUS_CONFIG[booking.status];
-                        const avColor = avatarColor(booking.student.id);
-                        const isPending = booking.status === "pending";
-                        return (
-                            <div key={booking.id} className="bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                                <div className="p-5 flex items-start gap-4">
-                                    {/* Avatar */}
-                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-sm ${avColor}`}>
-                                        {booking.student.name.charAt(0).toUpperCase()}
-                                    </div>
+                {/* Booking Table */}
+                <div className="bg-white border border-gray-300 rounded-xl shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left min-w-[1000px]">
+                            <thead>
+                                <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 text-xs uppercase">
+                                    <th className="px-4 py-3 font-semibold">Student</th>
+                                    <th className="px-4 py-3 font-semibold">Topic</th>
+                                    <th className="px-4 py-3 font-semibold">Date & Time</th>
+                                    <th className="px-4 py-3 font-semibold">Meeting</th>
+                                    <th className="px-4 py-3 font-semibold">Status</th>
+                                    <th className="px-4 py-3 font-semibold">Concluding Note</th>
+                                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {paginatedBookings.map((booking) => {
+                                    const cfg = STATUS_CONFIG[booking.status];
+                                    const avColor = avatarColor(booking.student.id);
+                                    const isPending = booking.status === "pending";
+                                    return (
+                                        <tr key={booking.id} className="hover:bg-gray-50 transition-colors align-top">
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-xs ${avColor}`}>
+                                                        {booking.student.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-gray-900">{booking.student.name}</p>
+                                                        <p className="text-xs text-gray-500">{booking.student.email}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
 
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <p className="text-sm font-bold text-gray-900">{booking.student.name}</p>
-                                            <p className="text-xs text-gray-400">{booking.student.email}</p>
-                                        </div>
+                                            <td className="px-4 py-4">
+                                                <p className="text-sm font-semibold text-gray-700">{booking.topic}</p>
+                                                {booking.message && (
+                                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{booking.message}</p>
+                                                )}
+                                            </td>
 
-                                        <p className="text-sm font-semibold text-gray-700 mt-1">{booking.topic}</p>
-
-                                        {booking.message && (
-                                            <div className="flex items-start gap-1 mt-1">
-                                                <FiMessageSquare size={12} className="text-gray-400 mt-0.5 flex-shrink-0" />
-                                                <p className="text-xs text-gray-500 line-clamp-2">{booking.message}</p>
-                                            </div>
-                                        )}
-
-                                        <div className="flex items-center gap-3 mt-2 flex-wrap">
-                                            <span className="flex items-center gap-1 text-xs text-gray-500">
-                                                <FiCalendar size={11} /> {formatDate(booking.date)}
-                                            </span>
-                                            <span className="flex items-center gap-1 text-xs text-gray-500">
-                                                <FiClock size={11} /> {booking.time}
-                                            </span>
-                                            <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                                booking.meetingType === "online"
-                                                    ? "bg-blue-100 text-blue-700"
-                                                    : "bg-orange-100 text-orange-700"
-                                            }`}>
-                                                {booking.meetingType === "online" ? <FiWifi size={10} /> : <FiMapPin size={10} />}
-                                                {booking.meetingType === "online" ? "Online" : "In-Person"}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Right side: status + actions */}
-                                    <div className="flex flex-col items-end gap-3 flex-shrink-0">
-                                        <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.color}`}>
-                                            {cfg.icon} {cfg.label}
-                                        </span>
-
-                                        {isPending && (
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    disabled={!!actionLoading}
-                                                    onClick={() => handleAction(booking.id, "accepted")}
-                                                    className="px-4 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50"
-                                                >
-                                                    {actionLoading === booking.id + "accepted" ? "..." : "Accept"}
-                                                </button>
-                                                <button
-                                                    disabled={!!actionLoading}
-                                                    onClick={() => handleAction(booking.id, "rejected")}
-                                                    className="px-4 py-1.5 border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg transition disabled:opacity-50"
-                                                >
-                                                    {actionLoading === booking.id + "rejected" ? "..." : "Reject"}
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {booking.status === "accepted" && (
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => router.push(`/rooms/${booking.id}`)}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition"
-                                                >
-                                                    <FiVideo size={12} /> Open Meeting
-                                                </button>
-                                                <button 
-                                                    onClick={() => setShowNotePopup(booking.id)}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition shadow-md shadow-blue-100"
-                                                >
-                                                    <FiCheckCircle size={12} /> Submit
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Completed Note Display */}
-                                {booking.status === "completed" && booking.consultantNote && (
-                                    <div className="px-5 pb-5">
-                                        <div className="border-t border-gray-100 pt-4">
-                                            <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
-                                                <p className="text-[10px] font-black text-blue-500 mb-1 flex items-center gap-1 uppercase tracking-widest">
-                                                    <FiMessageSquare size={11} /> Concluding Note
+                                            <td className="px-4 py-4">
+                                                <p className="text-sm text-gray-700 flex items-center gap-1">
+                                                    <FiCalendar size={12} /> {formatDate(booking.date)}
                                                 </p>
-                                                <p className="text-[11px] font-bold text-slate-700 leading-relaxed italic">"{booking.consultantNote}"</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                                                <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                                                    <FiClock size={12} /> {booking.time}
+                                                </p>
+                                            </td>
 
-                    {filtered.length === 0 && (
-                        <div className="text-center py-20 text-gray-400">
-                            <FiCalendar size={40} className="mx-auto mb-3 opacity-30" />
-                            <p className="text-sm">No {filter !== "all" ? filter : ""} meeting requests found.</p>
+                                            <td className="px-4 py-4">
+                                                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${booking.meetingType === "online"
+                                                        ? "bg-blue-100 text-blue-700"
+                                                        : "bg-orange-100 text-orange-700"
+                                                    }`}>
+                                                    {booking.meetingType === "online" ? <FiWifi size={10} /> : <FiMapPin size={10} />}
+                                                    {booking.meetingType === "online" ? "Online" : "In-Person"}
+                                                </span>
+                                            </td>
+
+                                            <td className="px-4 py-4">
+                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.color}`}>
+                                                    {cfg.icon} {cfg.label}
+                                                </span>
+                                            </td>
+
+                                            <td className="px-4 py-4">
+                                                {booking.status === "completed" && booking.consultantNote ? (
+                                                    <p className="text-xs text-slate-700 max-w-[220px] line-clamp-3 italic">"{booking.consultantNote}"</p>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400">-</span>
+                                                )}
+                                            </td>
+
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center justify-end gap-2 flex-wrap">
+                                                    {isPending && (
+                                                        <>
+                                                            <button
+                                                                disabled={!!actionLoading}
+                                                                onClick={() => handleAction(booking.id, "accepted")}
+                                                                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50"
+                                                            >
+                                                                {actionLoading === booking.id + "accepted" ? "..." : "Accept"}
+                                                            </button>
+                                                            <button
+                                                                disabled={!!actionLoading}
+                                                                onClick={() => handleAction(booking.id, "rejected")}
+                                                                className="px-3 py-1.5 border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg transition disabled:opacity-50"
+                                                            >
+                                                                {actionLoading === booking.id + "rejected" ? "..." : "Reject"}
+                                                            </button>
+                                                        </>
+                                                    )}
+
+                                                    {booking.status === "accepted" && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => router.push(`/rooms/${booking.id}`)}
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition"
+                                                            >
+                                                                <FiVideo size={12} /> Open Meeting
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setShowNotePopup(booking.id)}
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition shadow-md shadow-blue-100"
+                                                            >
+                                                                <FiCheckCircle size={12} /> Submit
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+
+                                {paginatedBookings.length === 0 && (
+                                    <tr>
+                                        <td colSpan={7} className="py-16 text-center text-gray-400">
+                                            <FiCalendar size={34} className="mx-auto mb-2 opacity-30" />
+                                            <p className="text-sm">No {filter !== "all" ? filter : ""} meeting requests found.</p>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-white">
+                        <p className="text-sm text-gray-500">
+                            Showing {filtered.length === 0 ? 0 : (currentPage - 1) * ROWS_PER_PAGE + 1}
+                            -{Math.min(currentPage * ROWS_PER_PAGE, filtered.length)} of {filtered.length}
+                        </p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            <span className="text-sm text-gray-500">
+                                Page {currentPage} of {totalPages}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
                         </div>
-                    )}
+                    </div>
                 </div>
             </main>
         </div>
