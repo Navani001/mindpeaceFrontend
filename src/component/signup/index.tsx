@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { Button } from "@heroui/react";
 import { FcGoogle } from "react-icons/fc";
-import { signIn } from "next-auth/react";
 import { MdMailOutline, MdVisibility, MdVisibilityOff, MdPerson, MdPhone } from "react-icons/md";
 import Link from "next/link";
 import { postRequest } from "@/utils/axios/axios";
@@ -29,6 +28,12 @@ export const Signup = () => {
     };
 
     const router = useRouter();
+
+    const handleGoogleSignup = () => {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000/api/";
+        const googleAuthUrl = process.env.NEXT_PUBLIC_GOOGLE_AUTH_URL || `${baseUrl}auth/google`;
+        window.location.href = googleAuthUrl;
+    };
 
     const validateForm = () => {
         if (!name.trim()) {
@@ -123,7 +128,8 @@ export const Signup = () => {
 
                     {/* Google Sign Up */}
                     <button
-                        onClick={() => signIn("google", { redirectTo: "/" })}
+                        type="button"
+                        onClick={handleGoogleSignup}
                         className="w-full flex items-center justify-center gap-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium py-3 rounded-lg transition-colors mb-6"
                     >
                         <FcGoogle size={20} />
@@ -152,8 +158,8 @@ export const Signup = () => {
                                 type="button"
                                 onClick={() => setRole("student")}
                                 className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${role === "student"
-                                        ? "bg-blue-600 text-white border-blue-600"
-                                        : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
                                     }`}
                             >
                                 Student
@@ -162,8 +168,8 @@ export const Signup = () => {
                                 type="button"
                                 onClick={() => setRole("consultant")}
                                 className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${role === "consultant"
-                                        ? "bg-blue-600 text-white border-blue-600"
-                                        : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
                                     }`}
                             >
                                 Consultant
