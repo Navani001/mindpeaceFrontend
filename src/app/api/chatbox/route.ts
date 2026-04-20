@@ -1,29 +1,50 @@
 import Cerebras from '@cerebras/cerebras_cloud_sdk';
 import { createDataStreamResponse, formatDataStreamPart } from 'ai';
 
-const client = new Cerebras({
-  apiKey: process.env['CEREBRAS_API_KEY'],
-});
+export const runtime = 'nodejs';
 
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
-
-  if (!process.env['CEREBRAS_API_KEY']) {
+  const apiKey = process.env['CEREBRAS_API_KEY'];
+  if (!apiKey) {
     return Response.json({ error: 'Missing CEREBRAS_API_KEY' }, { status: 500 });
   }
 
-  const completionCreateResponse: any = await client.chat.completions.create({
-    messages: [
-      {
-        role: 'system',
-        content:
-          'you are mind peace ai assistant helping user to achieve mental peace and provide useful information related to mental peace and mental health',
-      },
-      ...messages,
-    ],
-    model: 'llama3.1-8b',
-  });
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return Response.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const messages =
+    typeof body === 'object' && body !== null && 'messages' in body
+      ? (body as { messages?: unknown }).messages
+      : undefined;
+
+  if (!Array.isArray(messages)) {
+    return Response.json({ error: 'Invalid messages payload' }, { status: 400 });
+  }
+
+  const client = new Cerebras({ apiKey });
+
+  let completionCreateResponse: any;
+  try {
+    completionCreateResponse = await client.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content:
+            'you are mind peace ai assistant helping user to achieve mental peace and provide useful information related to mental peace and mental health',
+        },
+        ...messages,
+      ],
+      model: 'llama3.1-8b',
+    });
+  } catch (error) {
+    console.error('Cerebras chat completion failed', error);
+    return Response.json({ error: 'Failed to generate response' }, { status: 502 });
+  }
 
   const assistantText =
     completionCreateResponse?.choices?.[0]?.message?.content ??
