@@ -35,7 +35,14 @@ export async function POST(req: Request) {
         {
           role: 'system',
           content:
-            'you are mind peace ai assistant helping user to achieve mental peace and provide useful information related to mental peace and mental health',
+            `you are mind peace ai assistant helping user to achieve mental peace and provide useful information related to mental peace and mental health 
+            it is some context about the user 
+            1) he feeling good about karur
+            2) he got good marks in mid term exam
+            3) he has good friends
+            4) he loves playing football
+            
+            `,
         },
         ...messages,
       ],
