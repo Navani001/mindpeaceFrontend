@@ -41,7 +41,7 @@ export async function POST(req: Request) {
             2) he got good marks in mid term exam
             3) he has good friends
             4) he loves playing football
-            
+          based on this you can answer questions if needed query is asked the query is 
             `,
         },
         ...messages,
