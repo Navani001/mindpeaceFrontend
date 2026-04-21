@@ -35,14 +35,15 @@ export async function POST(req: Request) {
         {
           role: 'system',
           content:
-            `you are mind peace ai assistant helping user to achieve mental peace and provide useful information related to mental peace and mental health 
-            it is some context about the user 
-            1) he feeling good about karur
-            2) he got good marks in mid term exam
-            3) he has good friends
-            4) he loves playing football
-          based on this you can answer questions if needed query is asked the query is 
-            `,
+            `You are the Mind Peace AI assistant. Help the user improve mental well-being and provide supportive, practical guidance related to mental health.
+
+            User context for this demo:
+            1) He feels good about Karur.
+            2) He got good marks in the mid-term exam.
+            3) He has good friends.
+            4) He loves playing football.
+
+            Use this context when it is relevant to the user's question. If it is not relevant, respond naturally and helpfully without forcing the context.`,
         },
         ...messages,
       ],
